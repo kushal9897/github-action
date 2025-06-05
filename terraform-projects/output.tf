@@ -1,9 +1,7 @@
-output "instance_id" {
-  description = "ID of the EC2 instance"
-  value       = aws_instance.Dev.id
+output "team_a_instance_id" {
+  value = module.team_a.instance_id
 }
 
-output "instance_public_ip" {
-  description = "Public IP address of the EC2 instance"
-  value       = aws_instance.Dev.public_ip
+output "team_b_instance_id" {
+  value = module.team_b.instance_id
 }

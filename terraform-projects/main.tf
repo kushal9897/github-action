@@ -1,8 +1,7 @@
-resource "aws_instance" "Dev" {
-  ami           = "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
-  instance_type = "t2.micro"
+module "team_a" {
+  source = "./teams/team-a.tf"
+}
 
-  tags = {
-    Name = "Dev-1"
-  }
+module "team_b" {
+  source = "./teams/team-b.tf"
 }
