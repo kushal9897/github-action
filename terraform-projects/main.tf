@@ -1,7 +1,15 @@
 module "team_a" {
-  source = "./teams/team-a.tf"
+  source        = "./modules/ec2-instance"
+  ami           = var.ami
+  instance_type = "t2.micro"
+  name          = "team-a-instance"
+  team          = "team-a"
 }
 
 module "team_b" {
-  source = "./teams/team-b.tf"
+  source        = "./modules/ec2-instance"
+  ami           = var.ami
+  instance_type = "t2.micro"
+  name          = "team-b-instance"
+  team          = "team-b"
 }
