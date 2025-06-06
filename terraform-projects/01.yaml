@@ -21,8 +21,11 @@ jobs:
 
     - name: vault version
       run: |
+          run: |
           VAULT_PATH=$(which vault)
           echo "Vault path: $VAULT_PATH"
+          sudo chmod +x "$VAULT_PATH"
+          vault -v
          
     - name: Check Vault Health
       run: |
