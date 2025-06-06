@@ -1,6 +1,6 @@
 name: Terraform Deploy (GitHub-hosted Runner)
 on:
-  push:
+ pull_request:
     branches:
      - main
   
