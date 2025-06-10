@@ -84,7 +84,7 @@ No single tool can validate all CIS controls due to their diverse nature. This i
 
 The framework implements a **multi-layered approach**, combining the strengths of different CNCF and cloud native security tools:
 
-![architecture-cis](./arch-cis.png)
+![architecture-cis](./arch-cis.png.jpg)
 
 
 ---
