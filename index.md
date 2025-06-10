@@ -3,7 +3,7 @@ date: 2025-12-06
 title: Building CIS EKS Compliance Automation with Kyverno and OpenTofu
 linkTitle: Building CIS EKS Compliance Automation with Kyverno and OpenTofu
 author: Yug
-description:A practical approach to implementing CIS security controls using CNCF cloud native tools.
+description: A practical approach to implementing CIS security controls using CNCF cloud native tools.
 ---
 
 # Building CIS EKS Compliance Automation with Kyverno and OpenTofu
