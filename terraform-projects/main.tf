@@ -1,4 +1,4 @@
-module "team_a" {
+module "team_aa" {
   source        = "./modules/ec2-instance"
   ami           = var.ami
   instance_type = "t2.micro"
