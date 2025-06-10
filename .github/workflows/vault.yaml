@@ -1,27 +1,112 @@
 name: Terraform Deploy (GitHub-hosted Runner)
+
 on:
-  push:
-    branches:
-     - main
-     - 'feat/**'
-
   pull_request:
-jobs:
-  vault:
-    name: install vault
-    runs-on: ubuntu-latest
- 
-    steps:
-    - name: checkout-code
-      uses: actions/checkout@v4
-           
-    - name: install vault
-      run: |
-        wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-        sudo apt update && sudo apt install vault  
+    branches:
+      - main
 
-    - name: vault version
-      run: |
-        echo " vault version"   
-        vault -v 
+jobs:
+  detect-changes:
+    name: Detect Changed Namespace Directories
+    runs-on: ubuntu-latest
+    outputs:
+      changed_namespaces: ${{ steps.detect.outputs.changed_namespaces }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect Changed Namespaces
+        id: detect
+        shell: bash
+        run: |
+          git fetch origin ${{ github.base_ref || 'main' }}
+
+          # Find changed directories under terraform-projects/namespaces/
+          CHANGED_DIRS=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD \
+            | grep '^terraform-projects/namespaces/' \
+            | cut -d '/' -f1,2,3 | sort -u)
+
+          echo "Changed namespaces:"
+          echo "$CHANGED_DIRS"
+
+          # Convert to JSON array
+          CHANGED_JSON=$(echo "$CHANGED_DIRS" | jq -R . | jq -s .)
+
+          echo "changed_namespaces=$CHANGED_JSON" >> $GITHUB_OUTPUT
+
+  terraform:
+    name: Terraform Deploy
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.changed_namespaces != '[]'
+    strategy:
+      matrix:
+        namespace: ${{ fromJson(needs.detect-changes.outputs.changed_namespaces) }}
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ matrix.namespace }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply (optional)
+        if: github.event.inputs.action == 'apply'
+        run: |
+          terraform apply -auto-approve
+          echo "Sleeping for 5 minutes..."
+          sleep 300
+
+      - name: Terraform Destroy (optional)
+      #  if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
+
+
+# name: Terraform Deploy (GitHub-hosted Runner)
+# on:
+#   push:
+#     branches:
+#      - feature/githubactions
+
+#   pull_request:
+# jobs:
+#   vault:
+#     name: install vault
+#     runs-on: [self-hosted, custom-actions-runner]
+#     steps:
+#     - name: checkout-code
+#       uses: actions/checkout@v4
+           
+#     - name: install vault
+#       run: |
+#         wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+#         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+#         sudo apt update && sudo apt install vault  
+
+#     - name: vault version
+#       run: |
+#         echo " vault version"   
+#         vault -v
+         
+#     - name: Check Vault Health
+#       run: |
+#           echo "Checking Vault health at $VAULT_ADDR/v1/sys/health"
+#           curl --fail --silent --show-error "$VAULT_ADDR/v1/sys/health"    
