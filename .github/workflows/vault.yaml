@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 2
 
       - name: Detect Changed Namespaces
         id: detect
@@ -23,18 +23,20 @@ jobs:
         run: |
           git fetch origin ${{ github.base_ref || 'main' }}
 
-          # Find changed directories under terraform-projects/namespaces/
           CHANGED_DIRS=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD \
             | grep '^terraform-projects/modules/' \
-            | cut -d '/' -f1,2,3 | sort -u)
+            | awk -F'/' '{print $1"/"$2"/"$3}' | sort -u | grep -v '^$')
 
           echo "Changed namespaces:"
           echo "$CHANGED_DIRS"
 
-          # Convert to JSON array
-          CHANGED_JSON=$(echo "$CHANGED_DIRS" | jq -R . | jq -s .)
+          if [ -z "$CHANGED_DIRS" ]; then
+            CHANGED_JSON="[]"
+          else
+            CHANGED_JSON=$(echo "$CHANGED_DIRS" | jq -R . | jq -s .)
+          fi
 
-          echo "changed_namespaces=$CHANGED_JSON" >> $GITHUB_OUTPUT
+          echo "changed_namespaces=$CHANGED_JSON" >> "$GITHUB_OUTPUT"
 
   terraform:
     name: Terraform Deploy
