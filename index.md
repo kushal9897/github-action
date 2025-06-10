@@ -1,9 +1,9 @@
 ---
 date: 2025-12-06
-title: 
-linkTitle: Kyverno-Envoy-Plugin - Kyverno policies based authorization plugin for Envoy
+title: Building CIS EKS Compliance Automation with Kyverno and OpenTofu
+linkTitle: Building CIS EKS Compliance Automation with Kyverno and OpenTofu
 author: Yug
-description: Make external authorization easy with Kyverno-Envoy-Plugin.
+description:A practical approach to implementing CIS security controls using CNCF cloud native tools.
 ---
 
 # Building CIS EKS Compliance Automation with Kyverno and OpenTofu
