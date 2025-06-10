@@ -25,7 +25,7 @@ jobs:
 
           # Find changed directories under terraform-projects/namespaces/
           CHANGED_DIRS=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD \
-            | grep '^terraform-projects/namespaces/' \
+            | grep '^terraform-projects/modules/' \
             | cut -d '/' -f1,2,3 | sort -u)
 
           echo "Changed namespaces:"
