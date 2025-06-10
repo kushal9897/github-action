@@ -1,4 +1,4 @@
-resource "aws_instance" "thiss5" {
+resource "aws_instance" "thiss55" {
   ami           = var.ami
   instance_type = var.instance_type
 
