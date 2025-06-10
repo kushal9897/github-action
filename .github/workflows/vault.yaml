@@ -10,36 +10,35 @@ jobs:
     name: Detect Changed Namespace Directories
     runs-on: ubuntu-latest
     outputs:
-      changed_namespaces: ${{ steps.detect.outputs.changed_namespaces }}
+      changed_namespaces: ${{ steps.set-vars.outputs.changed_namespaces }}
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0  # Ensure we get full commit history
 
-      - name: Detect Changed Namespaces
-        id: detect
-        shell: bash
+      - name: Get Changed Namespace Directories
+        id: set-vars
         run: |
-          git fetch origin ${{ github.base_ref || 'main' }}
+          echo "Fetching base branch..."
+          git fetch origin main
 
-          CHANGED_DIRS=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD \
-            | grep '^terraform-projects/modules/' \
-            | awk -F'/' '{print $1"/"$2"/"$3}' | sort -u | grep -v '^$')
+          echo "Detecting changed directories..."
+          changed_dirs=$(git diff --name-only origin/main...HEAD | grep '^terraform-projects/modules/' || true)
+
+          # Extract only unique namespace paths like terraform-projects/modules/foo/bar
+          namespaces=$(echo "$changed_dirs" | awk -F'/' '{print $1"/"$2"/"$3}' | sort -u | grep -v '^$')
 
           echo "Changed namespaces:"
-          echo "$CHANGED_DIRS"
+          echo "$namespaces"
 
-          if [ -z "$CHANGED_DIRS" ]; then
-            CHANGED_JSON="[]"
-          else
-            CHANGED_JSON=$(echo "$CHANGED_DIRS" | jq -R . | jq -s .)
-          fi
+          # Convert to JSON array
+          json_array=$(echo "$namespaces" | jq -R . | jq -s .)
 
-          echo "changed_namespaces=$CHANGED_JSON" >> "$GITHUB_OUTPUT"
+          echo "changed_namespaces=$json_array" >> "$GITHUB_OUTPUT"
 
   terraform:
-    name: Terraform Deploy
+    name: Terraform Plan
     needs: detect-changes
     runs-on: ubuntu-latest
     if: needs.detect-changes.outputs.changed_namespaces != '[]'
@@ -58,7 +57,7 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Terraform
@@ -69,46 +68,3 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan
-
-      - name: Terraform Apply (optional)
-        if: github.event.inputs.action == 'apply'
-        run: |
-          terraform apply -auto-approve
-          echo "Sleeping for 5 minutes..."
-          sleep 300
-
-      - name: Terraform Destroy (optional)
-      #  if: github.event.inputs.action == 'destroy'
-        run: terraform destroy -auto-approve
-
-
-# name: Terraform Deploy (GitHub-hosted Runner)
-# on:
-#   push:
-#     branches:
-#      - feature/githubactions
-
-#   pull_request:
-# jobs:
-#   vault:
-#     name: install vault
-#     runs-on: [self-hosted, custom-actions-runner]
-#     steps:
-#     - name: checkout-code
-#       uses: actions/checkout@v4
-           
-#     - name: install vault
-#       run: |
-#         wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-#         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-#         sudo apt update && sudo apt install vault  
-
-#     - name: vault version
-#       run: |
-#         echo " vault version"   
-#         vault -v
-         
-#     - name: Check Vault Health
-#       run: |
-#           echo "Checking Vault health at $VAULT_ADDR/v1/sys/health"
-#           curl --fail --silent --show-error "$VAULT_ADDR/v1/sys/health"    
